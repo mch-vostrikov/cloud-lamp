@@ -59,13 +59,13 @@ function rand(max) {
 
 function apply(col_arr)
 {
-  (col_arr ? col_arr : colors).forEach(function(color, id) {
+  col_arr.forEach(function(color, id) {
     ledStrip.putColor(id, color);
   });
   ledStrip.apply();
 }
 
-apply();
+apply(Array(length).fill(BLACK));
 
 function do_storm() {
   weather.forEach(function(w, id) {
@@ -87,10 +87,10 @@ function do_storm() {
 function do_mood() {
   var led = rand(length);
   var col = rand(3);
-  if (rand(1)) {
-    colors_mood[led][col] = Math.max(1.0, colors_mood[led][col] + MOOD_STEP);
+  if (Math.random() > 0.5) {
+    colors_mood[led][col] = Math.min(1.0, colors_mood[led][col] + MOOD_STEP);
   } else {
-    colors_mood[led][col] = Math.min(0.0, colors_mood[led][col] - MOOD_STEP);
+    colors_mood[led][col] = Math.max(0.0, colors_mood[led][col] - MOOD_STEP);
   }
 
   ledStrip.putColor(led, colors_mood[led]);
@@ -112,11 +112,11 @@ receiver.on('receive', function(code, repeat) {
   } else if (code == receiver.keys.PLUS) {
     if (program == STORM && !repeat) {
       // Change intensity.
-      PROBABILITY_ID = Math.max(PROBABILITY_ID + 1, STRIKE_PROBABILITIES.length - 1);
+      PROBABILITY_ID = Math.min(PROBABILITY_ID + 1, STRIKE_PROBABILITIES.length - 1);
       STRIKE_PROBABILITY = STRIKE_PROBABILITIES[PROBABILITY_ID];
     } else if (program == LAMP || program == MOOD) {
       // Change brightness.
-      BRIGHTNESS = Math.max(1.0, BRIGHTNESS + BRIGHTNESS_STEP);
+      BRIGHTNESS = Math.min(1.0, BRIGHTNESS + BRIGHTNESS_STEP);
       ledStrip.brightness(BRIGHTNESS);
       if (program == LAMP) {
         ledStrip.apply();
@@ -125,11 +125,11 @@ receiver.on('receive', function(code, repeat) {
   } else if (code == receiver.keys.MINUS) {
     if (program == STORM && !repeat) {
       // Change intensity.
-      PROBABILITY_ID = Math.min(PROBABILITY_ID - 1, 0);
+      PROBABILITY_ID = Math.max(PROBABILITY_ID - 1, 0);
       STRIKE_PROBABILITY = STRIKE_PROBABILITIES[PROBABILITY_ID];
     } else if (program == LAMP || program == MOOD) {
       // Change brightness.
-      BRIGHTNESS = Math.min(0.0, BRIGHTNESS - BRIGHTNESS_STEP);
+      BRIGHTNESS = Math.max(0.0, BRIGHTNESS - BRIGHTNESS_STEP);
       ledStrip.brightness(BRIGHTNESS);
       if (program == LAMP) {
         ledStrip.apply();
@@ -145,13 +145,13 @@ receiver.on('receive', function(code, repeat) {
 function start_program(old_prog, p)
 {
   console.log('Activationg program', program);
-  if (old_prog == storm || old_prog == MOOD) {
+  if (old_prog == STORM || old_prog == MOOD) {
     clearInterval(timer);
   }
   if (program == OFF) {
     apply(Array(length).fill(BLACK));
   } else if (program == LAMP) {
-    apply();
+    apply(colors);
   } else if (program == STORM) {
     apply(Array(length).fill(BACKGROUND));
     PROBABILITY_ID = 3;
