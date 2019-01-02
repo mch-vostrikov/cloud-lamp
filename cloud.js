@@ -2,6 +2,7 @@
 SPI1.setup({baud:3200000, mosi:A7, sck:A5, miso:A6});
 var LENGTH = 20;
 var ledStrip = require('@amperka/led-strip').connect(SPI1, LENGTH, 'RGB');
+ledStrip.clear();
 
 // IR setup.
 var receiver = require('@amperka/ir-receiver').connect(P8);
@@ -48,8 +49,9 @@ var STORM = 2;
 var MOOD = 3;
 
 // States.
-var colors = Array(LENGTH).fill(SUNNY);
-var colors_mood = Array(LENGTH).fill(SUNNY);
+// Need colors* to store copies of color instead of reference to the same object.
+var colors = Array(LENGTH).fill().map(x => SUNNY.map(x=>x));
+var colors_mood = Array(LENGTH).fill().map(x => SUNNY.map(x=>x));
 var weather = Uint16Array(LENGTH).fill(0);
 var program = OFF;
 
@@ -64,8 +66,6 @@ function apply(col_arr)
   });
   ledStrip.apply();
 }
-
-apply(Array(length).fill(BLACK));
 
 function do_storm() {
   weather.forEach(function(w, id) {
@@ -137,27 +137,31 @@ receiver.on('receive', function(code, repeat) {
     }
   }
   if (old_prog != program) {
-    console.log('Mode is', program);
+    //console.log('Mode is', program);
     start_program(old_prog, program);
   }
 });
 
 function start_program(old_prog, p)
 {
-  console.log('Activationg program', program);
+  //console.log('Activationg program', program);
   if (old_prog == STORM || old_prog == MOOD) {
     clearInterval(timer);
   }
   if (program == OFF) {
-    apply(Array(length).fill(BLACK));
+    //apply(Array(length).fill(BLACK));
+    ledStrip.clear();
   } else if (program == LAMP) {
+    ledStrip.brightness(BRIGHTNESS);
     apply(colors);
   } else if (program == STORM) {
+    ledStrip.brightness(1);
     apply(Array(length).fill(BACKGROUND));
     PROBABILITY_ID = 3;
     STRIKE_PROBABILITY = STRIKE_PROBABILITIES[PROBABILITY_ID];
     timer = setInterval(do_storm, PERIOD_STORM);
   } else if (program == MOOD) {
+    ledStrip.brightness(BRIGHTNESS);
     apply(colors_mood);
     timer = setInterval(do_mood, PERIOD_MOOD);
   }
@@ -167,4 +171,3 @@ function start_program(old_prog, p)
 //setDeepSleep(true);
 //setSleepIndicator(LED1);
 setBusyIndicator(LED2);
-
