@@ -5,7 +5,7 @@ var ledStrip = require('@amperka/led-strip').connect(SPI1, LENGTH, 'RGB');
 ledStrip.clear();
 
 // IR setup.
-var receiver = require('@amperka/ir-receiver').connect(P8);
+var receiver = require('@amperka/ir-receiver').connect(B1);
 
 // Monkey patch.
 ledStrip.putUintColor = function(index, R, G, B) {
