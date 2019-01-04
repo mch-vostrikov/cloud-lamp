@@ -85,7 +85,7 @@ function do_storm() {
 }
 
 function do_mood() {
-  var led = rand(length);
+  var led = rand(LENGTH);
   var col = rand(3);
   if (Math.random() > 0.5) {
     colors_mood[led][col] = Math.min(1.0, colors_mood[led][col] + MOOD_STEP);
@@ -103,6 +103,8 @@ receiver.on('receive', function(code, repeat) {
   old_prog = program;
   if (!repeat && code == receiver.keys.POWER) {
     program = program ? OFF : LAMP;
+  } else if (program == OFF) {
+    return; // Don't act on remote commands when off.
   } else if (!repeat && code == receiver.keys.X) {
     program = LAMP;
   } else if (!repeat && code == receiver.keys.Y) {
@@ -137,26 +139,24 @@ receiver.on('receive', function(code, repeat) {
     }
   }
   if (old_prog != program) {
-    //console.log('Mode is', program);
     start_program(old_prog, program);
   }
 });
 
 function start_program(old_prog, p)
 {
-  //console.log('Activationg program', program);
   if (old_prog == STORM || old_prog == MOOD) {
     clearInterval(timer);
   }
   if (program == OFF) {
-    //apply(Array(length).fill(BLACK));
     ledStrip.clear();
   } else if (program == LAMP) {
     ledStrip.brightness(BRIGHTNESS);
     apply(colors);
   } else if (program == STORM) {
+    weather = Uint16Array(LENGTH).fill(0);
     ledStrip.brightness(1);
-    apply(Array(length).fill(BACKGROUND));
+    apply(Array(LENGTH).fill(BACKGROUND));
     PROBABILITY_ID = 3;
     STRIKE_PROBABILITY = STRIKE_PROBABILITIES[PROBABILITY_ID];
     timer = setInterval(do_storm, PERIOD_STORM);
@@ -167,7 +167,6 @@ function start_program(old_prog, p)
   }
 }
 
-// Deep sleep causes weird freezes with IR connected.
-//setDeepSleep(true);
-//setSleepIndicator(LED1);
+setDeepSleep(true);
+setSleepIndicator(LED1);
 setBusyIndicator(LED2);
