@@ -37,6 +37,12 @@ var BRIGHTNESS_STEP = 0.05;
 var BACKGROUND = [0.1, 0.1, 0.2];
 var BLACK = [0.0, 0.0, 0.0];
 var WHITE = [1.0, 1.0, 1.0];
+var RED = [1.0, 0, 0];
+var GREEN = [0, 1.0, 0];
+var BLUE = [0, 0, 1.0];
+var PURPLE = [1.0, 0, 1.0];
+var CYAN = [0, 1.0, 1.0];
+var YELLOW = [1.0, 1.0, 0];
 var SUNNY = [1.0, 0.8, 0.1];
 var STEP = WHITE.map((val, id) => (val - BACKGROUND[id]) * 1.0 / STRIKE_INTENSITY);
 var STORM_COLORS_R = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[0]));
@@ -52,8 +58,9 @@ var MOOD = 3;
 var NIGHTLIGHT = 4;
 
 // States.
+var lamp_colors = [SUNNY, WHITE, RED, GREEN, BLUE, PURPLE, CYAN, YELLOW];
+var lamp_id = 0;
 // Need colors* to store copies of color instead of reference to the same object.
-var colors = Array(LENGTH).fill().map(x => SUNNY.map(x=>x));
 var colors_mood = Array(LENGTH).fill().map(x => SUNNY.map(x=>x));
 var weather = Uint16Array(LENGTH).fill(0);
 var program = OFF;
@@ -102,7 +109,7 @@ function do_mood() {
 
 function nightlight_off() {
   if (program == NIGHTLIGHT) {
-    start_program(OFF);
+    start_program(OFF, false);
   }
 }
 
@@ -110,6 +117,7 @@ var timer = 0;
 
 receiver.on('receive', function(code, repeat) {
   new_prog = program;
+  restart = false;
   if (!repeat && code == receiver.keys.POWER) {
     new_prog = program ? OFF : LAMP;
   } else if (!repeat && code == receiver.keys.CROSS) {
@@ -148,13 +156,16 @@ receiver.on('receive', function(code, repeat) {
         ledStrip.apply();
       }
     }
+  } else if (code == receiver.keys.SQUARE && program == LAMP && !repeat) {
+    lamp_id = (lamp_id + 1) % lamp_colors.length;
+    restart = true;
   }
-  start_program(new_prog);
+  start_program(new_prog, restart);
 });
 
-function start_program(new_prog)
+function start_program(new_prog, restart)
 {
-  if (new_prog == program) return;
+  if (new_prog == program && !restart) return;
   old_prog = program;
   program = new_prog;
 
@@ -165,7 +176,7 @@ function start_program(new_prog)
     ledStrip.clear();
   } else if (program == LAMP) {
     ledStrip.brightness(BRIGHTNESS);
-    apply(colors);
+    apply(Array(LENGTH).fill(lamp_colors[lamp_id]));
   } else if (program == STORM) {
     weather = Uint16Array(LENGTH).fill(0);
     ledStrip.brightness(1);
