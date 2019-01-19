@@ -26,6 +26,7 @@ var STRIKE_INTENSITY = STRIKE_LENGTH / PERIOD_STORM;
 var STRIKE_PROBABILITIES = STRIKE_PROBABILITIES_PER_SECOND.map(p => 1.0 - Math.pow(1.0 - p, 1.0/STRIKE_INTENSITY));
 var PROBABILITY_ID = 3;
 var STRIKE_PROBABILITY = STRIKE_PROBABILITIES[PROBABILITY_ID];
+var TIME_NIGHTLIGHT = 60000;
 
 var PERIOD_MOOD = 40;
 var MOOD_STEP = 0.1;
@@ -41,12 +42,14 @@ var STEP = WHITE.map((val, id) => (val - BACKGROUND[id]) * 1.0 / STRIKE_INTENSIT
 var STORM_COLORS_R = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[0]));
 var STORM_COLORS_G = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[1]));
 var STORM_COLORS_B = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[2]));
+var NIGHTLIGHT_BRIGHTNESS = 0.3;
 
 // Programs.
 var OFF = 0;
 var LAMP = 1;
 var STORM = 2;
 var MOOD = 3;
+var NIGHTLIGHT = 4;
 
 // States.
 // Need colors* to store copies of color instead of reference to the same object.
@@ -97,20 +100,28 @@ function do_mood() {
   ledStrip.apply();
 }
 
+function nightlight_off() {
+  if (program == NIGHTLIGHT) {
+    start_program(OFF);
+  }
+}
+
 var timer = 0;
 
 receiver.on('receive', function(code, repeat) {
-  old_prog = program;
+  new_prog = program;
   if (!repeat && code == receiver.keys.POWER) {
-    program = program ? OFF : LAMP;
+    new_prog = program ? OFF : LAMP;
+  } else if (!repeat && code == receiver.keys.CROSS) {
+    new_prog = NIGHTLIGHT;
   } else if (program == OFF) {
     return; // Don't act on remote commands when off.
   } else if (!repeat && code == receiver.keys.X) {
-    program = LAMP;
+    new_prog = LAMP;
   } else if (!repeat && code == receiver.keys.Y) {
-    program = STORM;
+    new_prog = STORM;
   } else if (!repeat && code == receiver.keys.Z) {
-    program = MOOD;
+    new_prog = MOOD;
   } else if (code == receiver.keys.PLUS) {
     if (program == STORM && !repeat) {
       // Change intensity.
@@ -138,14 +149,16 @@ receiver.on('receive', function(code, repeat) {
       }
     }
   }
-  if (old_prog != program) {
-    start_program(old_prog, program);
-  }
+  start_program(new_prog);
 });
 
-function start_program(old_prog, p)
+function start_program(new_prog)
 {
-  if (old_prog == STORM || old_prog == MOOD) {
+  if (new_prog == program) return;
+  old_prog = program;
+  program = new_prog;
+
+  if ([STORM, MOOD, NIGHTLIGHT].indexOf(old_prog) >= 0) {
     clearInterval(timer);
   }
   if (program == OFF) {
@@ -164,6 +177,10 @@ function start_program(old_prog, p)
     ledStrip.brightness(BRIGHTNESS);
     apply(colors_mood);
     timer = setInterval(do_mood, PERIOD_MOOD);
+  } else if (program == NIGHTLIGHT) {
+    ledStrip.brightness(NIGHTLIGHT_BRIGHTNESS);
+    apply(Array(LENGTH).fill(WHITE));
+    timer = setTimeout(nightlight_off, TIME_NIGHTLIGHT);
   }
 }
 
