@@ -45,9 +45,9 @@ var CYAN = [0, 1.0, 1.0];
 var YELLOW = [1.0, 1.0, 0];
 var SUNNY = [1.0, 0.8, 0.1];
 var STEP = WHITE.map((val, id) => (val - BACKGROUND[id]) * 1.0 / STRIKE_INTENSITY);
-var STORM_COLORS_R = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[0]));
-var STORM_COLORS_G = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[1]));
-var STORM_COLORS_B = Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[2]));
+var STORM_COLORS_R = new Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[0]));
+var STORM_COLORS_G = new Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[1]));
+var STORM_COLORS_B = new Uint8ClampedArray(STRIKE_INTENSITY).fill(0).map((c, i) => 255*(STEP[0]*i + BACKGROUND[2]));
 var NIGHTLIGHT_BRIGHTNESS = 0.3;
 
 // Programs.
@@ -62,7 +62,7 @@ var lamp_colors = [SUNNY, WHITE, RED, GREEN, BLUE, PURPLE, CYAN, YELLOW];
 var lamp_id = 0;
 // Need colors* to store copies of color instead of reference to the same object.
 var colors_mood = Array(LENGTH).fill().map(x => SUNNY.map(x=>x));
-var weather = Uint16Array(LENGTH).fill(0);
+var weather = new Uint16Array(LENGTH).fill(0);
 var program = OFF;
 
 function rand(max) {
@@ -178,7 +178,7 @@ function start_program(new_prog, restart)
     ledStrip.brightness(BRIGHTNESS);
     apply(Array(LENGTH).fill(lamp_colors[lamp_id]));
   } else if (program == STORM) {
-    weather = Uint16Array(LENGTH).fill(0);
+    weather = new Uint16Array(LENGTH).fill(0);
     ledStrip.brightness(1);
     apply(Array(LENGTH).fill(BACKGROUND));
     PROBABILITY_ID = 3;
