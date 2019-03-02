@@ -61,7 +61,7 @@ var NIGHTLIGHT = 4;
 var lamp_colors = [SUNNY, WHITE, RED, GREEN, BLUE, PURPLE, CYAN, YELLOW];
 var lamp_id = 0;
 // Need colors* to store copies of color instead of reference to the same object.
-var colors_mood = Array(LENGTH).fill().map(x => SUNNY.map(x=>x));
+var mood_hues = Array(LENGTH).fill().map(x => Math.random()*6);
 var weather = new Uint16Array(LENGTH).fill(0);
 var program = OFF;
 
@@ -94,16 +94,29 @@ function do_storm() {
   ledStrip.apply();
 }
 
-function do_mood() {
-  var led = rand(LENGTH);
-  var col = rand(3);
-  if (Math.random() > 0.5) {
-    colors_mood[led][col] = Math.min(1.0, colors_mood[led][col] + MOOD_STEP);
-  } else {
-    colors_mood[led][col] = Math.max(0.0, colors_mood[led][col] - MOOD_STEP);
+function init_mood()
+{
+  var f = Math.floor;
+  var a = Math.abs;
+  for (i = 0; i < LENGTH; i++) {
+    var col = [1, 1, 1];
+    var H = mood_hues[i];
+    col[2-f(H*6+1)%3] -= a(H*6%2-1);
+    col[f(H*3+2)%3] = 0;
+    ledStrip.putColor(i, col);
   }
+  ledStrip.apply();
+}
 
-  ledStrip.putColor(led, colors_mood[led]);
+function do_mood(hues, a, f, r, min, max) {
+  var id = f(r() * hues.length);
+  var H = hues[id] + (r()-0.5)*MOOD_STEP;
+  H = (H < 0)?(6+H):((H>6)?(H-6):H);
+  hues[id] = H;
+  var col = [1, 1, 1];
+  col[2-f(H*6+1)%3] -= a(H*6%2-1);
+  col[f(H*3+2)%3] = 0;
+  ledStrip.putColor(id, col);
   ledStrip.apply();
 }
 
@@ -122,6 +135,7 @@ receiver.on('receive', function(code, repeat) {
     new_prog = program ? OFF : LAMP;
   } else if (!repeat && code == receiver.keys.CROSS) {
     new_prog = NIGHTLIGHT;
+    restart = true; // Renew timer.
   } else if (program == OFF) {
     return; // Don't act on remote commands when off.
   } else if (!repeat && code == receiver.keys.X) {
@@ -130,6 +144,7 @@ receiver.on('receive', function(code, repeat) {
     new_prog = STORM;
   } else if (!repeat && code == receiver.keys.Z) {
     new_prog = MOOD;
+    restart = true; // New random colors.
   } else if (code == receiver.keys.PLUS) {
     if (program == STORM && !repeat) {
       // Change intensity.
@@ -186,8 +201,10 @@ function start_program(new_prog, restart)
     timer = setInterval(do_storm, PERIOD_STORM);
   } else if (program == MOOD) {
     ledStrip.brightness(BRIGHTNESS);
-    apply(colors_mood);
-    timer = setInterval(do_mood, PERIOD_MOOD);
+    mood_hues = Array(LENGTH).fill().map(() => Math.random() * 6);
+    init_mood();
+    timer = setInterval(do_mood, PERIOD_MOOD, mood_hues,
+	  Math.abs, Math.floor, Math.random, Math.min, Math.max);
   } else if (program == NIGHTLIGHT) {
     ledStrip.brightness(NIGHTLIGHT_BRIGHTNESS);
     apply(Array(LENGTH).fill(WHITE));
